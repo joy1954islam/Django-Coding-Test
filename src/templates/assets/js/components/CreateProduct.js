@@ -2,19 +2,32 @@ import React, {useState} from 'react';
 import TagsInput from 'react-tagsinput';
 import 'react-tagsinput/react-tagsinput.css';
 import Dropzone from 'react-dropzone'
+import axios from 'axios';
 
 
 const CreateProduct = (props) => {
 
     const [productVariantPrices, setProductVariantPrices] = useState([])
 
+    const [productImageData, setProductImageData] = useState([])
+    const [imagePathData, setimagePathData] = useState([])
+    const [productDetailsData, setProductDetailsData] = useState({})
+
+    const onProductDetailDataChange = (event) => {
+        const {name, value} = event.target;
+        setProductDetailsData(prevS => {
+            return {
+                ...prevS,
+                [name]: value
+            }
+        })
+    }
     const [productVariants, setProductVariant] = useState([
         {
             option: 1,
             tags: []
         }
     ])
-    console.log(typeof props.variants)
     // handle click event of the Add button
     const handleAddClick = () => {
         let all_variants = JSON.parse(props.variants.replaceAll("'", '"')).map(el => el.id)
@@ -49,6 +62,7 @@ const CreateProduct = (props) => {
         productVariants.filter((item) => {
             tags.push(item.tags)
         })
+        console.log('tags = ', tags);
 
         setProductVariantPrices([])
 
@@ -74,10 +88,66 @@ const CreateProduct = (props) => {
         return ans;
     }
 
+    // product variant price and stock change
+    const onProductVariantPriceAndStockChange = (event, productVariantTitle ) =>{
+        const {name, value} = event.target;
+
+        setProductVariantPrices(prevS => {
+            return prevS.map(i => i.title === productVariantTitle ? {...i, [name]: value} : i)
+        })
+    }
+
+    // const ProductImageUpload = (acceptedFiles) =>{
+    //     let images = [];
+    //     let imagePath = [];
+    //     for (let i=0; i<acceptedFiles.length; i++){
+    //         images.push(acceptedFiles[i])
+    //         imagePath.push(acceptedFiles[i].path)
+    //     }
+    //     console.log('access data = ', images);
+    //     setProductImageData(images)
+    //     setimagePathData(imagePath)
+    // }
+
+    
+
+
+
     // Save product
     let saveProduct = (event) => {
         event.preventDefault();
         // TODO : write your code here to save the product
+        console.log('productImageData = ', productImageData);
+        console.log('productDetailsData = ', productDetailsData);
+        console.log('productVariantPrices = ', productVariantPrices);
+        console.log('productVariants = ', productVariants);
+        let formData = new FormData();
+
+        formData.append("product_details", JSON.stringify(productDetailsData));
+        productImageData && formData.append("product_image", productImageData[0]);
+        formData.append("product_variants", JSON.stringify(productVariants));
+        formData.append("product_variant_prices", JSON.stringify(productVariantPrices));
+
+        console.log('formdata = ', formData);
+        axios({
+            url: '/product/api/create-product/',
+            method: "post",
+            data: formData,
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        })
+        .then(res => {
+            
+            window.location.href = "/product/list/"
+        })
+        .catch(err => {
+            console.log('e = ', err);
+            
+                alert(err.message)
+            
+        })
+
     }
 
 
@@ -90,15 +160,15 @@ const CreateProduct = (props) => {
                             <div className="card-body">
                                 <div className="form-group">
                                     <label htmlFor="">Product Name</label>
-                                    <input type="text" placeholder="Product Name" className="form-control"/>
+                                    <input type="text" name='title' id='title' value={productDetailsData.title} onChange={onProductDetailDataChange} placeholder="Product Name" className="form-control"/>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="">Product SKU</label>
-                                    <input type="text" placeholder="Product Name" className="form-control"/>
+                                    <input type="text" name='sku' id='sku' value={productDetailsData.sku} onChange={onProductDetailDataChange} placeholder="Product SKU" className="form-control"/>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="">Description</label>
-                                    <textarea id="" cols="30" rows="4" className="form-control"></textarea>
+                                    <textarea id="description" name='description' cols="30" rows="4" value={productDetailsData.description} onChange={onProductDetailDataChange} className="form-control"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -109,7 +179,8 @@ const CreateProduct = (props) => {
                                 <h6 className="m-0 font-weight-bold text-primary">Media</h6>
                             </div>
                             <div className="card-body border">
-                                <Dropzone onDrop={acceptedFiles => console.log(acceptedFiles)}>
+                            
+                            <Dropzone onDrop={acceptedFiles => setProductImageData(acceptedFiles)}>
                                     {({getRootProps, getInputProps}) => (
                                         <section>
                                             <div {...getRootProps()}>
@@ -119,7 +190,9 @@ const CreateProduct = (props) => {
                                         </section>
                                     )}
                                 </Dropzone>
+                                
                             </div>
+                            
                         </div>
                     </div>
 
@@ -201,8 +274,8 @@ const CreateProduct = (props) => {
                                                 return (
                                                     <tr key={index}>
                                                         <td>{productVariantPrice.title}</td>
-                                                        <td><input className="form-control" type="text"/></td>
-                                                        <td><input className="form-control" type="text"/></td>
+                                                        <td><input className="form-control" type="text" name='price' id='price' onChange={(e) => onProductVariantPriceAndStockChange(e, productVariantPrice.title)} value={productVariantPrice.price}/></td>
+                                                        <td><input className="form-control" type="text" name='stock' id='stock' onChange={(e) => onProductVariantPriceAndStockChange(e, productVariantPrice.title)} value={productVariantPrice.stock}/></td>
                                                     </tr>
                                                 )
                                             })
@@ -214,9 +287,10 @@ const CreateProduct = (props) => {
                         </div>
                     </div>
                 </div>
-
-                <button type="button" onClick={saveProduct} className="btn btn-lg btn-primary">Save</button>
-                <button type="button" className="btn btn-secondary btn-lg">Cancel</button>
+                
+                <button type='button' onClick={saveProduct} className="btn btn-lg btn-primary">{props.is_for_update == "true" ? "Update" : "Save" }</button>
+                <button type='button' className="btn btn-lg btn-secondary">Cancel</button>
+                
             </section>
         </div>
     );

@@ -73,7 +73,7 @@ class ListProductView(ListView):
             price_to = self.request.GET.get('price_to')
             context['filter_product_title'] = product_title
             context['filter_date'] = date
-            context['product_variant'] = variant
+            context['filter_product_variant'] = variant
             context['filter_price_from'] = price_from
             context['filter_price_to'] = price_to
         context['filter_product_title'] = ''
