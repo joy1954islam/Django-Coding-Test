@@ -82,3 +82,15 @@ class ListProductView(ListView):
         context['filter_price_from'] = ''
         context['filter_price_to'] = ''
         return context
+
+
+class UpdateProductView(generic.TemplateView):
+    template_name = 'products/update.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(UpdateProductView, self).get_context_data(**kwargs)
+        variants = Variant.objects.filter(active=True).values('id', 'title')
+        context['product'] = True
+        context['variants'] = list(variants.all())
+        context['product_id'] = kwargs.get('product_id')
+        return context

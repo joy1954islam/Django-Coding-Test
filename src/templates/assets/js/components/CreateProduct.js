@@ -1,16 +1,18 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import TagsInput from 'react-tagsinput';
 import 'react-tagsinput/react-tagsinput.css';
 import Dropzone from 'react-dropzone'
 import axios from 'axios';
+import { useHistory, useParams } from 'react-router-dom';
 
 
 const CreateProduct = (props) => {
 
+   
     const [productVariantPrices, setProductVariantPrices] = useState([])
 
     const [productImageData, setProductImageData] = useState([])
-    const [imagePathData, setimagePathData] = useState([])
+
     const [productDetailsData, setProductDetailsData] = useState({})
 
     const onProductDetailDataChange = (event) => {
@@ -109,18 +111,35 @@ const CreateProduct = (props) => {
     //     setimagePathData(imagePath)
     // }
 
+    // get product data information in individual product
+    const getProductDataInfo = () => {
+        axios({
+            url: `/product/api/create-product/${props.product_id}/`,
+            method: "get",
+        })
+        .then(res => {
+
+            setProductVariantPrices(res.data.product_variant_prices)
+            setProductVariant(res.data.product_variants)
+            setProductDetailsData(res.data.product_details)
+        })
+        .catch(err => console.error(err))
+       
+    }
+
+
     
-
-
+    useEffect(() => {
+        if(props.product_id){
+            getProductDataInfo()
+        }
+    }, [props.product_id])
 
     // Save product
     let saveProduct = (event) => {
         event.preventDefault();
         // TODO : write your code here to save the product
-        console.log('productImageData = ', productImageData);
-        console.log('productDetailsData = ', productDetailsData);
-        console.log('productVariantPrices = ', productVariantPrices);
-        console.log('productVariants = ', productVariants);
+
         let formData = new FormData();
 
         formData.append("product_details", JSON.stringify(productDetailsData));
@@ -128,25 +147,40 @@ const CreateProduct = (props) => {
         formData.append("product_variants", JSON.stringify(productVariants));
         formData.append("product_variant_prices", JSON.stringify(productVariantPrices));
 
-        console.log('formdata = ', formData);
-        axios({
-            url: '/product/api/create-product/',
-            method: "post",
-            data: formData,
-            headers: {
+       
+        if(props.product_id){
+            axios({
+                url: `/product/api/create-product/${props.product_id}/`,
+                method: "put",
+                data: formData,
+                headers: {
                 "Content-Type": "multipart/form-data",
-            },
-        })
-        .then(res => {
-            
-            window.location.href = "/product/list/"
-        })
-        .catch(err => {
-            console.log('e = ', err);
-            
+                },
+            })
+            .then(res => {
+                window.location.href = "/product/list/"
+            })
+            .catch(err => {
+                console.log('e = ', err);
                 alert(err.message)
-            
-        })
+            })
+        }else{
+            axios({
+                url: '/product/api/create-product/',
+                method: "post",
+                data: formData,
+                headers: {
+                "Content-Type": "multipart/form-data",
+                },
+            })
+            .then(res => {
+                window.location.href = "/product/list/"
+            })
+            .catch(err => {
+                console.log('e = ', err);
+                alert(err.message)
+            })
+        }
 
     }
 
@@ -288,7 +322,7 @@ const CreateProduct = (props) => {
                     </div>
                 </div>
                 
-                <button type='button' onClick={saveProduct} className="btn btn-lg btn-primary">{props.is_for_update == "true" ? "Update" : "Save" }</button>
+                <button type='button' onClick={saveProduct} className="btn btn-lg btn-primary">{props.product_id ? "Update" : "Save" }</button>
                 <button type='button' className="btn btn-lg btn-secondary">Cancel</button>
                 
             </section>
